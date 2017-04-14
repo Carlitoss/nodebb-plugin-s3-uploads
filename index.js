@@ -6,7 +6,7 @@ var AWS = require("aws-sdk"),
 	fs = require("fs"),
 	request = require("request"),
 	path = require("path"),
-	sharp = module.parent.require("sharp"),
+	sharp = require("sharp"),
 	winston = module.parent.require("winston"),
 	nconf = module.parent.require("nconf"),
 	meta = module.parent.require("./meta"),
@@ -218,6 +218,10 @@ plugin.uploadImage = function (data, callback) {
 
 	var type = image.url ? "url" : "file";
 	var allowedMimeTypes = ["image/png", "image/jpeg", "image/gif"];
+	var maxWidth = parseInt(meta.config.maximumImageWidth);
+
+    // As maxWidth property is not filtered in Admin panel, we need to prevent 0 as value.
+	if (maxWidth <= 0) maxWidth = 1;
 
 	if (type === "file") {
 		if (!image.path) {
@@ -229,7 +233,6 @@ plugin.uploadImage = function (data, callback) {
 		}
 
 		fs.readFile(image.path, function (err, buffer) {
-			var maxWidth = parseInt(meta.config.maximumImageWidth);
 			sharp(buffer)
 				.resize(maxWidth)
 				.withoutEnlargement()
@@ -240,6 +243,9 @@ plugin.uploadImage = function (data, callback) {
 	}
 	else {
 		// We're uploading a new profile picture from an external URL
+		if (allowedMimeTypes.indexOf(mime.lookup(image.url)) === -1) {
+			return callback(new Error("invalid mime type"));
+		}
 
 		var imageDimension = parseInt(meta.config.profileImageDimension, 10) || 128;
 		// Get the image and buffer it
