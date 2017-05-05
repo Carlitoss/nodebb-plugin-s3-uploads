@@ -233,11 +233,23 @@ plugin.uploadImage = function (data, callback) {
 		}
 
 		fs.readFile(image.path, function (err, buffer) {
-			sharp(buffer)
-				.resize(maxWidth)
-				.withoutEnlargement()
-				.toBuffer(function(err, outputBuffer) {
-					uploadToS3(image.name, err, outputBuffer, callback);
+			const sharpImage = sharp(buffer);
+			sharpImage
+				.metadata()
+				.then(function(metadata) {
+					if (metadata.format === 'jpeg') {
+						return sharpImage.jpeg(options = {quality: 70}).toBuffer();
+					} else {
+						return sharpImage.toBuffer();
+					}
+				})
+				.then(function(data) {
+					sharp(data)
+						.resize(maxWidth)
+						.withoutEnlargement()
+						.toBuffer(function(err, outputBuffer) {
+							uploadToS3(image.name, err, outputBuffer, callback);
+					});
 				});
 		});
 	}
@@ -250,10 +262,22 @@ plugin.uploadImage = function (data, callback) {
 		var imageDimension = parseInt(meta.config.profileImageDimension, 10) || 128;
 		// Get the image and buffer it
 		request({url:image.url, encoding: null}, function(error, response, body) {
-			sharp(body)
-			.resize(imageDimension)
-				.toBuffer(function(err, outputBuffer) {
-					uploadToS3(image.name, err, outputBuffer, callback);
+			const sharpImage = sharp(body);
+			sharpImage
+				.metadata()
+				.then(function(metadata) {
+					if (metadata.format === 'jpeg') {
+						return sharpImage.jpeg(options = {quality: 70}).toBuffer();
+					} else {
+						return sharpImage.toBuffer();
+					}
+				})
+				.then(function(data) {
+					sharp(data)
+						.resize(imageDimension)
+						.toBuffer(function(err, outputBuffer) {
+							uploadToS3(image.name, err, outputBuffer, callback);
+					});
 				});
 		});
 	}
