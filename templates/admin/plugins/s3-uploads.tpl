@@ -11,6 +11,7 @@ export AWS_SECRET_ACCESS_KEY="yyyyy"
 export S3_UPLOADS_BUCKET="zzzz"
 export S3_UPLOADS_HOST="host"
 export S3_UPLOADS_PATH="path"
+export S3_UPLOADS_JPEG_QUALITY="65"
 </code></pre>
 
 <p>
@@ -74,6 +75,28 @@ export S3_UPLOADS_PATH="path"
 	</select>
 	<br/>
 
+	<label for="cacheControl">CacheControl parameter</label><br/>
+	<select id="cacheControl" name="cacheControl" title="AWS Cache Control parameter" class="form-control">
+		<option value="max-age=86400">24 Hours</option>
+		<option value="max-age=172800">48 Hours</option>
+		<option value="max-age=604800">1 Week</option>
+		<option value="max-age=1209600">2 Week</option>
+		<option value="max-age=2592000">1 Month</option>
+		<option value="max-age=5184000">2 Months</option>
+		<option value="max-age=7776000">3 Months</option>
+		<option value="max-age=15552000">6 Months</option>
+		<option value="max-age=31104000">1 Year</option>
+	</select>
+	<br/>
+
+	<label>Image processing</label>
+	<br/>
+	<p>JPEG image compression:</p>
+	<input id="jpegCompression" name="jpegCompression" value="{jpegCompression}" title="JPEG Compression"
+				 type="number" class="form-control input-lg" placeholder="70" min="20" max="100">
+	<p>Values from <strong>20</strong> (low quality) to <strong>100</strong> (high quality, and bigger file size).</p>
+	<br/>
+
 	<button class="btn btn-primary" type="submit">Save</button>
 </form>
 
@@ -95,7 +118,8 @@ export S3_UPLOADS_PATH="path"
 <script>
 	$(document).ready(function () {
 
-		$('#aws-region option[value="{region}"]').prop('selected', true)
+		$('#aws-region option[value="{region}"]').prop('selected', true);
+		$('#cacheControl option[value="{cacheControl}"]').prop('selected', true);
 
 		$("#s3-upload-bucket").on("submit", function (e) {
 			e.preventDefault();

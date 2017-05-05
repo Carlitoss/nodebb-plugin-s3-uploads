@@ -23,7 +23,9 @@ var settings = {
 	"region": process.env.AWS_DEFAULT_REGION || "us-east-1",
 	"bucket": process.env.S3_UPLOADS_BUCKET || undefined,
 	"host": process.env.S3_UPLOADS_HOST || "s3.amazonaws.com",
-	"path": process.env.S3_UPLOADS_PATH || undefined
+	"path": process.env.S3_UPLOADS_PATH || undefined,
+	"jpegCompression": process.env.S3_UPLOADS_JPEG_QUALITY || 70,
+	"cacheControl": process.env.S3_UPLOADS_CACHE_CONTROL || "max-age=2592000"
 };
 
 var accessKeyIdFromDb = false;
@@ -78,6 +80,18 @@ function fetchSettings(callback) {
 			settings.region = process.env.AWS_DEFAULT_REGION || "";
 		} else {
 			settings.region = newSettings.region;
+		}
+
+		if (!newSettings.cacheControl) {
+			settings.cacheControl = process.env.S3_UPLOADS_CACHE_CONTROL || "";
+		} else {
+			settings.cacheControl = newSettings.cacheControl;
+		}
+
+		if (!newSettings.jpegCompression) {
+			settings.jpegCompression = parseInt(process.env.S3_UPLOADS_JPEG_QUALITY) || 70;
+		} else {
+			settings.jpegCompression = parseInt(newSettings.jpegCompression);
 		}
 
 		if (settings.accessKeyId && settings.secretAccessKey) {
@@ -159,8 +173,10 @@ function renderAdmin(req, res) {
 		bucket: settings.bucket,
 		host: settings.host,
 		path: settings.path,
+		jpegCompression: settings.jpegCompression,
 		forumPath: forumPath,
 		region: settings.region,
+		cacheControl: settings.cacheControl,
 		accessKeyId: (accessKeyIdFromDb && settings.accessKeyId) || "",
 		secretAccessKey: (accessKeyIdFromDb && settings.secretAccessKey) || "",
 		csrf: token
@@ -175,7 +191,9 @@ function s3settings(req, res, next) {
 		bucket: data.bucket || "",
 		host: data.host || "",
 		path: data.path || "",
-		region: data.region || ""
+		region: data.region || "",
+		jpegCompression: parseInt(data.jpegCompression) || 70,
+		cacheControl: data.cacheControl || ""
 	};
 
 	saveSettings(newSettings, res, next);
@@ -238,7 +256,7 @@ plugin.uploadImage = function (data, callback) {
 				.metadata()
 				.then(function(metadata) {
 					if (metadata.format === 'jpeg') {
-						return sharpImage.jpeg(options = {quality: 70}).toBuffer();
+						return sharpImage.jpeg(options = {quality: settings.jpegCompression}).toBuffer();
 					} else {
 						return sharpImage.toBuffer();
 					}
@@ -267,7 +285,7 @@ plugin.uploadImage = function (data, callback) {
 				.metadata()
 				.then(function(metadata) {
 					if (metadata.format === 'jpeg') {
-						return sharpImage.jpeg(options = {quality: 70}).toBuffer();
+						return sharpImage.jpeg(options = {quality: settings.jpegCompression}).toBuffer();
 					} else {
 						return sharpImage.toBuffer();
 					}
@@ -331,7 +349,8 @@ function uploadToS3(filename, err, buffer, callback) {
 		Key: s3KeyPath + uuid() + path.extname(filename),
 		Body: buffer,
 		ContentLength: buffer.length,
-		ContentType: mime.lookup(filename)
+		ContentType: mime.lookup(filename),
+		CacheControl: settings.cacheControl
 	};
 
 	S3().putObject(params, function (err) {
